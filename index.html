@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вітаннячко!</title>
+    <style>
+    /* Підключаємо сучасний, дружній геометричний шрифт */
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+    body { 
+        font-family: 'Plus Jakarta Sans', sans-serif; 
+        max-width: 500px; 
+        margin: 40px auto; 
+        padding: 0 20px; 
+        background-color: #faf6f0; 
+        color: #2d2a26;
+    }
+
+    img { 
+        max-width: 100%; 
+        border-radius: 12px; 
+        margin-top: 10px; 
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    h1 {
+        text-align: center;
+        color: #e11d48; 
+        font-size: 32px;
+        margin-bottom: 5px;
+    }
+
+    h2 { 
+        color: #4a453e; 
+        font-size: 20px;
+        margin-top: 30px;
+        border-bottom: 2px solid #eae1d4;
+        padding-bottom: 8px;
+    }
+
+    .form-group { 
+        margin-bottom: 18px; 
+    }
+
+    label { 
+        font-weight: 600; 
+        display: block; 
+        margin-bottom: 7px; 
+        color: #6b6359; 
+        font-size: 14px;
+    }
+
+    input, textarea { 
+        width: 100%; 
+        padding: 12px; 
+        border: 2px solid #eae1d4; 
+        border-radius: 12px; 
+        box-sizing: border-box; 
+        font-size: 14px; 
+        font-family: inherit;
+        background-color: #fff;
+        transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus {
+        outline: none;
+        border-color: #e11d48; 
+    }
+
+    button { 
+        background: #e11d48; 
+        color: white; 
+        border: none; 
+        padding: 14px 20px; 
+        border-radius: 12px; 
+        cursor: pointer; 
+        width: 100%; 
+        font-size: 16px; 
+        font-weight: 700; 
+        margin-top: 10px; 
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.2);
+        transition: all 0.2s ease;
+    }
+
+    button:hover { 
+        background: #be123c; 
+        transform: translateY(-1px); 
+        box-shadow: 0 6px 15px rgba(225, 29, 72, 0.3);
+    }
+
+    button:active {
+        transform: translateY(1px);
+    }
+
+    /* Картки з вітаннями */
+    .post { 
+        border: none; 
+        border-radius: 16px; 
+        padding: 20px; 
+        margin-top: 20px; 
+        background: white; 
+        box-shadow: 0 10px 25px -5px rgba(74, 69, 62, 0.05); 
+    }
+
+    /* Верхня частина картки, де текст і кнопка */
+    .post-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .post-header p {
+        margin: 0; 
+        font-size: 16px; 
+        color: #222; 
+        word-wrap: break-word;
+        flex-grow: 1;
+    }
+
+    /* Стильна кнопка видалення */
+    .delete-btn {
+        background: none;
+        color: #a1a1aa;
+        border: none;
+        padding: 4px 8px;
+        font-size: 14px;
+        cursor: pointer;
+        width: auto;
+        margin-top: 0;
+        box-shadow: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .delete-btn:hover {
+        background: #fee2e2;
+        color: #ef4444;
+        transform: none;
+        box-shadow: none;
+    }
+    </style>
+
+    <script>
+        window.supabase = {
+            createClient: function(supabaseUrl, supabaseKey) {
+                return {
+                    storage: {
+                        from: function(bucketName) {
+                            return {
+                                upload: async function(path, file) {
+                                    try {
+                                        const response = await fetch(`${supabaseUrl}/storage/v1/object/${bucketName}/${path}`, {
+                                            method: 'POST',
+                                            headers: { 'Authorization': `Bearer ${supabaseKey}`, 'apikey': supabaseKey },
+                                            body: file
+                                        });
+                                        const result = await response.json();
+                                        if (!response.ok) return { data: null, error: result };
+                                        return { data: result, error: null };
+                                    } catch (e) { return { data: null, error: e }; }
+                                },
+                                getPublicUrl: function(path) {
+                                    return { data: { publicUrl: `${supabaseUrl}/storage/v1/object/public/${bucketName}/${path}` } };
+                                },
+                                remove: async function(paths) {
+                                    try {
+                                        const response = await fetch(`${supabaseUrl}/storage/v1/object/${bucketName}`, {
+                                            method: 'DELETE',
+                                            headers: { 
+                                                'Authorization': `Bearer ${supabaseKey}`, 
+                                                'apikey': supabaseKey,
+                                                'Content-Type': 'application/json'
+                                            },
+                                            body: JSON.stringify({ prefixes: paths })
+                                        });
+                                        const result = await response.json();
+                                        return { data: result, error: null };
+                                    } catch (e) { return { data: null, error: e }; }
+                                }
+                            };
+                        }
+                    },
+                    from: function(tableName) {
+                        return {
+                            select: function() {
+                                return {
+                                    order: function(column, options) {
+                                        return {
+                                            then: async function(callback) {
+                                                try {
+                                                    const orderQuery = options && options.ascending ? 'asc' : 'desc';
+                                                    const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?select=*&order=${column}.${orderQuery}`, {
+                                                        method: 'GET',
+                                                        headers: { 'Authorization': `Bearer ${supabaseKey}`, 'apikey': supabaseKey }
+                                                    });
+                                                    const data = await response.json();
+                                                    if (!response.ok) callback({ data: null, error: { message: data.message || "Помилка бази" } });
+                                                    else callback({ data: data, error: null });
+                                                } catch (e) { callback({ data: null, error: e }); }
+                                            }
+                                        };
+                                    }
+                                };
+                            },
+                            insert: async function(rows) {
+                                try {
+                                    const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}`, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Authorization': `Bearer ${supabaseKey}`,
+                                            'apikey': supabaseKey,
+                                            'Content-Type': 'application/json',
+                                            'Prefer': 'return=representation'
+                                        },
+                                        body: JSON.stringify(rows)
+                                    });
+                                    const result = await response.json();
+                                    if (!response.ok) return { data: null, error: { message: result.message || "Помилка запису" } };
+                                    return { data: result, error: null };
+                                } catch (e) { return { data: null, error: e }; }
+                            },
+                            delete: function() {
+                                return {
+                                    eq: async function(column, value) {
+                                        try {
+                                            const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?${column}=eq.${value}`, {
+                                                method: 'DELETE',
+                                                headers: { 'Authorization': `Bearer ${supabaseKey}`, 'apikey': supabaseKey }
+                                            });
+                                            if (!response.ok) {
+                                                const result = await response.json();
+                                                return { data: null, error: result };
+                                            }
+                                            return { data: true, error: null };
+                                        } catch (e) { return { data: null, error: e }; }
+                                    }
+                                };
+                            }
+                        };
+                    }
+                };
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>Вітаннячко!</h1>
+    <h2>Створити вітання</h2>
+    <div class="form-group">
+        <label for="textContent">Текст вітання:</label>
+        <textarea id="textContent" rows="4" placeholder="Напишіть щось приємне..."></textarea>
+    </div>
+    
+    <div class="form-group">
+        <label for="fileInput">Додати фотографію (необов'язково):</label>
+        <input type="file" id="fileInput" accept="image/*">
+    </div>
+    
+    <button onclick="publishPost()">Опублікувати</button>
+
+    <h2>Стрічка новин</h2>
+    <div id="postsContainer">Завантаження...</div>
+
+    <script>
+        const SUPABASE_URL = "https://yhzkklxdveutvanwotgd.supabase.co"; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InloemtrbHhkdmV1dHZhbndvdGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMjcyNjAsImV4cCI6MjA5NzgwMzI2MH0.Yh0AoACVSe529v5AOywH4fbc_jzLae9iNpvf--E9lAc";
+
+        const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        /**
+         * Функція для публікації тексту та фотографії
+         */
+        async function publishPost() {
+            const text = document.getElementById('textContent').value.trim();
+            const fileInput = document.getElementById('fileInput');
+            
+            if (!text) {
+                alert("Будь ласка, заповніть текст вітання!");
+                return;
+            }
+
+            try {
+                let imageUrl = null; 
+
+                if (fileInput.files && fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}.${fileExt}`;
+
+                    let { error: uploadError } = await db.storage
+                        .from('images')
+                        .upload(fileName, file);
+
+                    if (uploadError) throw uploadError;
+
+                    const { data: urlData } = db.storage
+                        .from('images')
+                        .getPublicUrl(fileName);
+                    
+                    imageUrl = urlData.publicUrl;
+                }
+
+                const { error: insertError } = await db
+                    .from('posts')
+                    .insert([{ title: text, image_url: imageUrl }]);
+
+                if (insertError) throw insertError;
+
+                alert("Опубліковано успішно!");
+                
+                document.getElementById('textContent').value = '';
+                fileInput.value = '';
+                
+                loadPosts();
+
+            } catch (error) {
+                console.error(error);
+                alert("Помилка завантаження: " + (error.message || error));
+            }
+        }
+
+        /**
+         * Функція для видалення вітання
+         */
+        async function deletePost(id, fileName) {
+            if (!confirm("Ви впевнені, що хочете видалити це вітання?")) return;
+
+            try {
+                // 1. Якщо у вітання було фото, видаляємо його зі сховища (Storage)
+                if (fileName && fileName !== 'null') {
+                    await db.storage.from('images').remove([fileName]);
+                }
+
+                // 2. Видаляємо рядок з таблиці 'posts' в базі даних
+                const { error } = await db.from('posts').delete().eq('id', id);
+                if (error) throw error;
+
+                alert("Вітання видалено!");
+                loadPosts(); // Оновлюємо стрічку
+
+            } catch (error) {
+                console.error(error);
+                alert("Не вдалося видалити: " + (error.message || error));
+            }
+        }
+
+        /**
+         * Функція виведення стрічки публікацій
+         */
+        async function loadPosts() {
+            const container = document.getElementById('postsContainer');
+            if (!container) return;
+
+            try {
+                db.from('posts').select().order('id', { ascending: false }).then(({ data: posts, error }) => {
+                    if (error) {
+                        container.innerHTML = '<p style="color: red;">Помилка бази даних: ' + error.message + '</p>';
+                        return;
+                    }
+
+                    if (!posts || posts.length === 0) {
+                        container.innerHTML = '<p>Тут поки нічого немає. Напишіть щось першим!</p>';
+                        return;
+                    }
+
+                    container.innerHTML = '';
+                    posts.forEach(post => {
+                        const postDiv = document.createElement('div');
+                        postDiv.className = 'post';
+
+                        // Витягуємо чисте ім'я файлу з url, щоб передати у функцію видалення
+                        const fileName = post.image_url ? post.image_url.split('/').pop() : null;
+                        const imgHtml = post.image_url ? `<img src="${post.image_url}" alt="Фото">` : '';
+
+                        postDiv.innerHTML = `
+                            <div class="post-header">
+                                <p>${post.title}</p>
+                                <button class="delete-btn" onclick="deletePost(${post.id}, '${fileName}')">✕</button>
+                            </div>
+                            ${imgHtml}
+                        `;
+                        container.appendChild(postDiv);
+                    });
+                });
+            } catch (error) {
+                console.error(error);
+                container.innerHTML = '<p style="color: red;">Не вдалося завантажити стрічку</p>';
+            }
+        }
+
+        // Робимо функцію доступною для onclick
+        window.deletePost = deletePost;
+
+        loadPosts();
+    </script>
+</body>
+</html>
